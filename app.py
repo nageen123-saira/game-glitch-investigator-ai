@@ -1,3 +1,6 @@
+from logger import log_interaction
+from agent import analyze_bug
+from evaluator import calculate_reliability
 import random
 import streamlit as st
 from logic_utils import get_range_for_difficulty, parse_guess, check_guess, update_score
@@ -124,3 +127,89 @@ if submit:
 
 st.divider()
 st.caption("Built by an AI that claims this code is production-ready.")
+
+st.divider()
+
+st.header("🤖 AI Bug Investigator")
+st.write(
+    "Paste Python code and describe the expected behavior. "
+    "The system will retrieve debugging guidance, classify the likely bug, "
+    "and calculate a reliability score."
+)
+
+debug_description = st.text_area(
+    "What should the code do?",
+    placeholder="Example: The score should never become negative.",
+    key="debug_description",
+)
+
+debug_code = st.text_area(
+    "Paste the Python code:",
+    placeholder="score = score - penalty",
+    height=180,
+    key="debug_code",
+)
+
+analyze_button = st.button("Analyze Bug 🔍")
+
+if analyze_button:
+    result = analyze_bug(
+        code=debug_code,
+        description=debug_description,
+    )
+
+    if not result["success"]:
+        st.error(result["error"])
+
+    else:
+        analysis = result["analysis"]
+        retrieved_documents = result["retrieved_documents"]
+
+        reliability = calculate_reliability(
+            analysis=analysis,
+            retrieved_documents=retrieved_documents,
+        )
+        log_interaction(
+    code=debug_code,
+    description=debug_description,
+    result=result,
+    reliability=reliability,
+       )
+
+        st.subheader("Analysis Result")
+
+        st.write("**Likely bug category:**")
+        st.info(analysis["category"])
+
+        st.write("**Explanation:**")
+        st.write(analysis["explanation"])
+
+        st.write("**Suggested fix:**")
+        st.write(analysis["suggested_fix"])
+
+        st.write("**Suggested test:**")
+        st.write(analysis["suggested_test"])
+
+        st.write("**Retrieved sources:**")
+
+        if analysis["sources"]:
+            for source in analysis["sources"]:
+                st.write(f"- {source}")
+        else:
+            st.warning("No strongly relevant source was found.")
+
+        st.write("**Reliability score:**")
+        st.metric(
+            label=reliability["label"],
+            value=f"{reliability['score']:.0%}",
+        )
+
+        with st.expander("Reliability checks"):
+            for check_name, passed in reliability["checks"].items():
+                symbol = "✅" if passed else "❌"
+                st.write(f"{symbol} {check_name.replace('_', ' ').title()}")
+
+        st.caption(
+            "The reliability score measures response completeness and retrieval "
+            "grounding. It does not guarantee that the diagnosis is correct."
+        )
