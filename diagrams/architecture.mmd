@@ -1,0 +1,22 @@
+flowchart TD
+
+    A[User] --> B[Streamlit Interface]
+
+    B --> C[Input Guardrails]
+
+    C -->|Valid Input| D[AI Agent]
+    C -->|Invalid Input| E[Display Error]
+
+    D --> F[Knowledge Retriever]
+
+    F --> G[Knowledge Base]
+
+    G --> D
+
+    D --> H[Reliability Evaluator]
+
+    H --> I[Interaction Logger]
+
+    I --> J[Display Results]
+
+    J --> K[User]
